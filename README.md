@@ -9,6 +9,7 @@ jsonparser/
 ├── test_data/                    # 共通テストデータ
 │   ├── duplicate_keys.json      # 重複キーのテスト
 │   ├── large_numbers.json       # 大きな数値のテスト
+│   ├── bad_unicode*.json         # 不正なUnicodeのテスト
 │   └── README.md                # テストデータの説明
 ├── go/                          # Go言語での実装
 ├── python/                      # Python言語での実装
