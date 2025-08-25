@@ -1,0 +1,21 @@
+{
+    "name": "json-parser-test",
+    "version": "1.0.0",
+    "description": "JSON Parser Behavior Comparison for Node.js",
+    "main": "main.js",
+    "scripts": {
+        "test": "node main.js",
+        "start": "node main.js"
+    },
+    "dependencies": {
+        "fast-json-parse": "^1.0.3",
+        "json5": "^2.2.3"
+    },
+    "keywords": [
+        "json",
+        "parser",
+        "comparison"
+    ],
+    "author": "",
+    "license": "MIT"
+}

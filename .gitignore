@@ -1,0 +1,19 @@
+# OSX
+.DS_Store
+
+# env
+.env
+
+#
+*.so
+*.o
+*.dll
+*.exe
+*.pdb
+*.class
+*.jar
+node_modules
+*.pyc
+.venv
+__pycache__
+target/

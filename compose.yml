@@ -1,0 +1,116 @@
+services:
+  go:
+    build:
+      context: ./go
+      dockerfile: Dockerfile
+    container_name: jsonparser-go
+    volumes:
+      - ./test_data:/app/test_data:ro
+
+  python:
+    build:
+      context: ./python
+      dockerfile: Dockerfile
+    container_name: jsonparser-python
+    volumes:
+      - ./test_data:/app/test_data:ro
+
+  nodejs:
+    build:
+      context: ./nodejs
+      dockerfile: Dockerfile
+    container_name: jsonparser-nodejs
+    volumes:
+      - ./test_data:/app/test_data:ro
+
+  c:
+    build:
+      context: ./c
+      dockerfile: Dockerfile
+    container_name: jsonparser-c
+    volumes:
+      - ./test_data:/app/test_data:ro
+
+  rust:
+    build:
+      context: ./rust
+      dockerfile: Dockerfile
+    container_name: jsonparser-rust
+    volumes:
+      - ./test_data:/app/test_data:ro
+
+  java:
+    build:
+      context: ./java
+      dockerfile: Dockerfile
+    container_name: jsonparser-java
+    volumes:
+      - ./test_data:/app/test_data:ro
+
+  csharp:
+    build:
+      context: ./csharp
+      dockerfile: Dockerfile
+    container_name: jsonparser-csharp
+    volumes:
+      - ./test_data:/app/test_data:ro
+
+  ruby:
+    build:
+      context: ./ruby
+      dockerfile: Dockerfile
+    container_name: jsonparser-ruby
+    volumes:
+      - ./test_data:/app/test_data:ro
+
+  php:
+    build:
+      context: ./php
+      dockerfile: Dockerfile
+    container_name: jsonparser-php
+    volumes:
+      - ./test_data:/app/test_data:ro
+
+  all:
+    image: alpine:latest
+    depends_on:
+      - go
+      - python
+      - nodejs
+      - c
+      - rust
+      - java
+      - csharp
+      - ruby
+      - php
+    command: |
+      sh -c '
+        echo "Running all JSON parser tests..."
+        echo ""
+        echo "=== Go ==="
+        docker compose run --rm go
+        echo ""
+        echo "=== Python ==="
+        docker compose run --rm python
+        echo ""
+        echo "=== Node.js ==="
+        docker compose run --rm nodejs
+        echo ""
+        echo "=== C ==="
+        docker compose run --rm c
+        echo ""
+        echo "=== Rust ==="
+        docker compose run --rm rust
+        echo ""
+        echo "=== Java ==="
+        docker compose run --rm java
+        echo ""
+        echo "=== C# ==="
+        docker compose run --rm csharp
+        echo ""
+        echo "=== Ruby ==="
+        docker compose run --rm ruby
+        echo ""
+        echo "=== PHP ==="
+        docker compose run --rm php
+      '
