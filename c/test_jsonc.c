@@ -99,6 +99,32 @@ void json_c_parse_test(const char *json_str, const char *test_name)
             printf("json-c: parse failed\n");
         }
     }
+    else if (strcmp(test_name, "bad_unicode") == 0)
+    {
+        struct json_object *username;
+        if (json_object_object_get_ex(json, "username", &username) && username)
+        {
+            const char *username_str = json_object_get_string(username);
+            if (username_str)
+            {
+                printf("json-c: username=\"");
+                // Print each character as hex to show how it's handled
+                for (const char *p = username_str; *p; p++)
+                {
+                    printf("\\x%02x", (unsigned char)*p);
+                }
+                printf("\" (success)\n");
+            }
+            else
+            {
+                printf("json-c: username value is null\n");
+            }
+        }
+        else
+        {
+            printf("json-c: username not found\n");
+        }
+    }
 
     json_object_put(json);
 #else

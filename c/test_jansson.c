@@ -8,7 +8,14 @@ void jansson_parse_test(const char *json_str, const char *test_name)
 {
 #ifdef HAVE_JANSSON
     json_error_t error;
-    json_t *json = json_loads(json_str, 0, &error);
+    // Use JSON_ALLOW_NUL flag for bad unicode tests
+    size_t flags = 0;
+    if (strcmp(test_name, "bad_unicode") == 0)
+    {
+        flags = JSON_ALLOW_NUL;
+    }
+
+    json_t *json = json_loads(json_str, flags, &error);
     if (!json)
     {
         printf("jansson: error - %s at line %d column %d\n", error.text, error.line, error.column);
@@ -63,6 +70,25 @@ void jansson_parse_test(const char *json_str, const char *test_name)
         else
         {
             printf("jansson: parse failed\n");
+        }
+    }
+    else if (strcmp(test_name, "bad_unicode") == 0)
+    {
+        json_t *username = json_object_get(json, "username");
+        if (json_is_string(username))
+        {
+            const char *username_str = json_string_value(username);
+            printf("jansson: username=\"");
+            // Print each character as hex to show how it's handled
+            for (const char *p = username_str; *p; p++)
+            {
+                printf("\\x%02x", (unsigned char)*p);
+            }
+            printf("\" (success)\n");
+        }
+        else
+        {
+            printf("jansson: username not found\n");
         }
     }
 

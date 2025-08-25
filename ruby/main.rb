@@ -1,108 +1,47 @@
 #!/usr/bin/env ruby
 require 'json'
+require 'oj'
+require 'multi_json'
 
-begin
-  require 'oj'
-  OJ_AVAILABLE = true
-rescue LoadError
-  OJ_AVAILABLE = false
-end
-
-begin
-  require 'multi_json'
-  MULTI_JSON_AVAILABLE = true
-rescue LoadError
-  MULTI_JSON_AVAILABLE = false
-end
+PARSERS = [
+  ['Standard JSON', -> (json_str) { JSON.parse(json_str) }],
+  ['Oj', -> (json_str) { Oj.load(json_str) }],
+  ['MultiJSON', -> (json_str) { MultiJson.load(json_str) }]
+].freeze
 
 def load_test_data(filename)
-  test_data_path = File.join('/app', 'test_data', filename)
-  File.read(test_data_path)
+  @test_data ||= {}
+  @test_data[filename] ||= File.read(File.join('/app', 'test_data', filename))
 end
 
-def test_duplicate_keys
-  puts "1. Duplicate Keys Test"
-  json_str = load_test_data('duplicate_keys.json')
-
-  # Standard JSON
-  begin
-    result = JSON.parse(json_str)
-    puts "Standard JSON: #{result['username']} (success)"
-  rescue => e
-    puts "Standard JSON: error - #{e.message}"
-  end
-
-  # Oj
-  if OJ_AVAILABLE
-    begin
-      result = Oj.load(json_str)
-      puts "Oj: #{result['username']} (success)"
-    rescue => e
-      puts "Oj: error - #{e.message}"
-    end
-  else
-    puts "Oj: not available"
-  end
-
-  # MultiJSON
-  if MULTI_JSON_AVAILABLE
-    begin
-      result = MultiJson.load(json_str)
-      puts "MultiJSON: #{result['username']} (success)"
-    rescue => e
-      puts "MultiJSON: error - #{e.message}"
-    end
-  else
-    puts "MultiJSON: not available"
-  end
-
-  puts
+def test_parser(parser_name, parser_proc, json_str, result_key = nil)
+  result = parser_proc.call(json_str)
+  value = result_key ? result[result_key] : result
+  class_info = result_key && value.respond_to?(:class) ? " (class: #{value.class})" : ""
+  puts "#{parser_name}: #{value}#{class_info} (success)"
+rescue => e
+  puts "#{parser_name}: error - #{e.message}"
 end
 
-def test_large_numbers
-  puts "3. Large Numbers Test"
-  json_str = load_test_data('large_numbers.json')
+def run_test(test_name, filename, result_key = nil)
+  puts "#{test_name}"
+  json_str = load_test_data(filename)
 
-  # Standard JSON
-  begin
-    result = JSON.parse(json_str)
-    puts "Standard JSON: #{result['value']} (class: #{result['value'].class})"
-  rescue => e
-    puts "Standard JSON: error - #{e.message}"
+  PARSERS.each do |parser_name, parser_proc|
+    test_parser(parser_name, parser_proc, json_str, result_key)
   end
-
-  # Oj
-  if OJ_AVAILABLE
-    begin
-      result = Oj.load(json_str)
-      puts "Oj: #{result['value']} (class: #{result['value'].class})"
-    rescue => e
-      puts "Oj: error - #{e.message}"
-    end
-  else
-    puts "Oj: not available"
-  end
-
-  # MultiJSON
-  if MULTI_JSON_AVAILABLE
-    begin
-      result = MultiJson.load(json_str)
-      puts "MultiJSON: #{result['value']} (class: #{result['value'].class})"
-    rescue => e
-      puts "MultiJSON: error - #{e.message}"
-    end
-  else
-    puts "MultiJSON: not available"
-  end
-
   puts
 end
 
 def main
   puts "=== JSON Parser Behavior Comparison (Ruby) ===\n"
 
-  test_duplicate_keys
-  test_large_numbers
+  run_test("1. Duplicate Keys Test", 'duplicate_keys.json', 'username')
+  run_test("2. Large Numbers Test", 'large_numbers.json', 'value')
+  run_test("3. Null Character Test", 'bad_unicode_1.json', 'username')
+  run_test("4. C1 Control Code Test", 'bad_unicode_2.json', 'username')
+  run_test("5. Unpaired Surrogate Test", 'bad_unicode_3.json', 'username')
+  run_test("6. Noncharacter Test", 'bad_unicode_4.json', 'username')
 end
 
 main if __FILE__ == $0

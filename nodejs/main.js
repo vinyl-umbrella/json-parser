@@ -27,88 +27,48 @@ function loadTestData(filename) {
     return fs.readFileSync(testDataPath, 'utf8');
 }
 
-function testDuplicateKeys() {
-    console.log("1. Duplicate Keys Test");
-    const jsonStr = loadTestData('duplicate_keys.json');
-
-    // Standard JSON.parse
-    try {
-        const result = JSON.parse(jsonStr);
-        console.log(`Standard JSON.parse: ${result.username} (success)`);
-    } catch (e) {
-        console.log(`Standard JSON.parse: error - ${e.message}`);
-    }
-
-    // fast-json-parse
-    if (fastJsonParse) {
-        try {
+// Parser configuration
+const parsers = [
+    {
+        name: 'Standard JSON.parse',
+        fn: (jsonStr) => JSON.parse(jsonStr),
+        available: true
+    },
+    {
+        name: 'fast-json-parse',
+        fn: (jsonStr) => {
             const result = fastJsonParse(jsonStr);
-            if (result.err) {
-                console.log(`fast-json-parse: error - ${result.err.message}`);
-            } else {
-                console.log(`fast-json-parse: ${result.value.username} (success)`);
-            }
-        } catch (e) {
-            console.log(`fast-json-parse: error - ${e.message}`);
-        }
-    } else {
-        console.log("fast-json-parse: not available");
+            if (result.err) throw result.err;
+            return result.value;
+        },
+        available: !!fastJsonParse
+    },
+    {
+        name: 'JSON5.parse',
+        fn: (jsonStr) => json5.parse(jsonStr),
+        available: !!json5
     }
+];
 
-    // JSON5
-    if (json5) {
+function runTest(testName, filename, extractValue = (result) => result.username) {
+    console.log(`${testName}`);
+    const jsonStr = loadTestData(filename);
+
+    parsers.forEach(parser => {
+        if (!parser.available) {
+            console.log(`${parser.name}: not available`);
+            return;
+        }
+
         try {
-            const result = json5.parse(jsonStr);
-            console.log(`JSON5.parse: ${result.username} (success)`);
+            const result = parser.fn(jsonStr);
+            const value = extractValue(result);
+            const typeInfo = typeof value === 'number' ? ` (type: ${typeof value})` : '';
+            console.log(`${parser.name}: ${value}${typeInfo} (success)`);
         } catch (e) {
-            console.log(`JSON5.parse: error - ${e.message}`);
+            console.log(`${parser.name}: error - ${e.message}`);
         }
-    } else {
-        console.log("JSON5.parse: not available");
-    }
-
-    console.log();
-}
-
-function testLargeNumbers() {
-    console.log("3. Large Numbers Test");
-    const jsonStr = loadTestData('large_numbers.json');
-
-    // Standard JSON.parse
-    try {
-        const result = JSON.parse(jsonStr);
-        console.log(`Standard JSON.parse: ${result.value} (type: ${typeof result.value})`);
-    } catch (e) {
-        console.log(`Standard JSON.parse: error - ${e.message}`);
-    }
-
-    // fast-json-parse
-    if (fastJsonParse) {
-        try {
-            const result = fastJsonParse(jsonStr);
-            if (result.err) {
-                console.log(`fast-json-parse: error - ${result.err.message}`);
-            } else {
-                console.log(`fast-json-parse: ${result.value.value} (type: ${typeof result.value.value})`);
-            }
-        } catch (e) {
-            console.log(`fast-json-parse: error - ${e.message}`);
-        }
-    } else {
-        console.log("fast-json-parse: not available");
-    }
-
-    // JSON5
-    if (json5) {
-        try {
-            const result = json5.parse(jsonStr);
-            console.log(`JSON5.parse: ${result.value} (type: ${typeof result.value})`);
-        } catch (e) {
-            console.log(`JSON5.parse: error - ${e.message}`);
-        }
-    } else {
-        console.log("JSON5.parse: not available");
-    }
+    });
 
     console.log();
 }
@@ -116,8 +76,13 @@ function testLargeNumbers() {
 function main() {
     console.log("=== JSON Parser Behavior Comparison (Node.js) ===\n");
 
-    testDuplicateKeys();
-    testLargeNumbers();
+    // Test cases
+    runTest("1. Duplicate Keys Test", 'duplicate_keys.json');
+    runTest("2. Large Numbers Test", 'large_numbers.json', (result) => result.value);
+    runTest("3. Null Character Test", 'bad_unicode_1.json');
+    runTest("4. C1 Control Code Test", 'bad_unicode_2.json');
+    runTest("5. Unpaired Surrogate Test", 'bad_unicode_3.json');
+    runTest("6. Noncharacter Test", 'bad_unicode_4.json');
 }
 
 if (require.main === module) {

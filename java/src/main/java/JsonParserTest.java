@@ -12,15 +12,51 @@ import java.io.StringReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Map;
+import java.util.List;
 
 public class JsonParserTest {
+
+    private static class TestCase {
+        final String name;
+        final String filename;
+
+        TestCase(String name, String filename) {
+            this.name = name;
+            this.filename = filename;
+        }
+    }
 
     public static void main(String[] args) {
         System.out.println("=== JSON Parser Behavior Comparison (Java) ===\n");
 
-        testDuplicateKeys();
-        testLargeNumbers();
+        List<TestCase> testCases = List.of(
+            new TestCase("1. Duplicate Keys Test", "duplicate_keys.json"),
+            new TestCase("2. Large Numbers Test", "large_numbers.json"),
+            new TestCase("3. Null Character Test", "bad_unicode_1.json"),
+            new TestCase("4. C1 Control Code Test", "bad_unicode_2.json"),
+            new TestCase("5. Unpaired Surrogate Test", "bad_unicode_3.json"),
+            new TestCase("6. Noncharacter Test", "bad_unicode_4.json")
+        );
+
+        for (TestCase testCase : testCases) {
+            runTest(testCase);
+        }
+    }
+
+    private static void runTest(TestCase testCase) {
+        System.out.println(testCase.name);
+        String jsonStr = loadTestData(testCase.filename);
+
+        if (jsonStr.isEmpty()) {
+            System.out.println("Skipping test - no data loaded\n");
+            return;
+        }
+
+        testJackson(jsonStr);
+        testGson(jsonStr);
+        testJsonP(jsonStr);
+
+        System.out.println();
     }
 
     private static String loadTestData(String filename) {
@@ -32,73 +68,45 @@ public class JsonParserTest {
         }
     }
 
-    private static void testDuplicateKeys() {
-        System.out.println("1. Duplicate Keys Test");
-        String jsonStr = loadTestData("duplicate_keys.json");
-
-        // Jackson
+    private static void testJackson(String jsonStr) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode node = mapper.readTree(jsonStr);
-            System.out.println("Jackson: " + node.get("username").asText() + " (success)");
+            JsonNode usernameNode = node.get("username");
+            if (usernameNode != null) {
+                System.out.println("Jackson: " + usernameNode.asText() + " (success)");
+            } else {
+                System.out.println("Jackson: no username field found (success)");
+            }
         } catch (Exception e) {
             System.out.println("Jackson: error - " + e.getMessage());
         }
-
-        // Gson
-        try {
-            Gson gson = new Gson();
-            JsonObject jsonObject = JsonParser.parseString(jsonStr).getAsJsonObject();
-            System.out.println("Gson: " + jsonObject.get("username").getAsString() + " (success)");
-        } catch (Exception e) {
-            System.out.println("Gson: error - " + e.getMessage());
-        }
-
-        // JSON-P (javax.json)
-        try {
-            JsonReader reader = Json.createReader(new StringReader(jsonStr));
-            javax.json.JsonObject jsonObject = reader.readObject();
-            System.out.println("JSON-P: " + jsonObject.getString("username") + " (success)");
-            reader.close();
-        } catch (Exception e) {
-            System.out.println("JSON-P: error - " + e.getMessage());
-        }
-
-        System.out.println();
     }
 
-    private static void testLargeNumbers() {
-        System.out.println("3. Large Numbers Test");
-        String jsonStr = loadTestData("large_numbers.json");
-
-        // Jackson
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode node = mapper.readTree(jsonStr);
-            System.out.println("Jackson: " + node.get("value").asLong() + " (type: long)");
-        } catch (Exception e) {
-            System.out.println("Jackson: error - " + e.getMessage());
-        }
-
-        // Gson
+    private static void testGson(String jsonStr) {
         try {
             Gson gson = new Gson();
             JsonObject jsonObject = JsonParser.parseString(jsonStr).getAsJsonObject();
-            System.out.println("Gson: " + jsonObject.get("value").getAsLong() + " (type: long)");
+            if (jsonObject.has("username")) {
+                System.out.println("Gson: " + jsonObject.get("username").getAsString() + " (success)");
+            } else {
+                System.out.println("Gson: no username field found (success)");
+            }
         } catch (Exception e) {
             System.out.println("Gson: error - " + e.getMessage());
         }
+    }
 
-        // JSON-P
-        try {
-            JsonReader reader = Json.createReader(new StringReader(jsonStr));
+    private static void testJsonP(String jsonStr) {
+        try (JsonReader reader = Json.createReader(new StringReader(jsonStr))) {
             javax.json.JsonObject jsonObject = reader.readObject();
-            System.out.println("JSON-P: " + jsonObject.getJsonNumber("value").longValue() + " (type: long)");
-            reader.close();
+            if (jsonObject.containsKey("username")) {
+                System.out.println("JSON-P: " + jsonObject.getString("username") + " (success)");
+            } else {
+                System.out.println("JSON-P: no username field found (success)");
+            }
         } catch (Exception e) {
             System.out.println("JSON-P: error - " + e.getMessage());
         }
-
-        System.out.println();
     }
 }

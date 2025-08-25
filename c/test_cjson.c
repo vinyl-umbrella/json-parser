@@ -65,6 +65,25 @@ void cjson_parse_test(const char *json_str, const char *test_name)
             printf("cJSON: parse failed\n");
         }
     }
+    else if (strcmp(test_name, "bad_unicode") == 0)
+    {
+        cJSON *username = cJSON_GetObjectItem(json, "username");
+        if (username && cJSON_IsString(username))
+        {
+            const char *username_str = username->valuestring;
+            printf("cJSON: username=\"");
+            // Print each character as hex to show how it's handled
+            for (const char *p = username_str; *p; p++)
+            {
+                printf("\\x%02x", (unsigned char)*p);
+            }
+            printf("\" (success)\n");
+        }
+        else
+        {
+            printf("cJSON: username not found\n");
+        }
+    }
 
     cJSON_Delete(json);
 #else

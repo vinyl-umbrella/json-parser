@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using Newtonsoft.Json;
@@ -18,8 +19,20 @@ namespace JsonParserTest
         {
             Console.WriteLine("=== JSON Parser Behavior Comparison (C#) ===\n");
 
-            TestDuplicateKeys();
-            TestLargeNumbers();
+            var testCases = new List<(string name, string filename)>
+            {
+                ("1. Duplicate Keys Test", "duplicate_keys.json"),
+                ("2. Large Numbers Test", "large_numbers.json"),
+                ("3. Null Character Test", "bad_unicode_1.json"),
+                ("4. C1 Control Code Test", "bad_unicode_2.json"),
+                ("5. Unpaired Surrogate Test", "bad_unicode_3.json"),
+                ("6. Noncharacter Test", "bad_unicode_4.json")
+            };
+
+            foreach (var (name, filename) in testCases)
+            {
+                RunTest(name, filename);
+            }
         }
 
         static string LoadTestData(string filename)
@@ -28,16 +41,16 @@ namespace JsonParserTest
             return File.ReadAllText(path);
         }
 
-        static void TestDuplicateKeys()
+        static void RunTest(string testName, string filename)
         {
-            Console.WriteLine("1. Duplicate Keys Test");
-            string jsonStr = LoadTestData("duplicate_keys.json");
+            Console.WriteLine(testName);
+            string jsonStr = LoadTestData(filename);
 
             // System.Text.Json
             try
             {
                 var data = System.Text.Json.JsonSerializer.Deserialize<TestData>(jsonStr);
-                Console.WriteLine($"System.Text.Json: {data.Username} (success)");
+                Console.WriteLine($"System.Text.Json: {data?.Username ?? data?.Value?.ToString() ?? "null"} (success)");
             }
             catch (Exception e)
             {
@@ -48,7 +61,7 @@ namespace JsonParserTest
             try
             {
                 var data = JsonConvert.DeserializeObject<TestData>(jsonStr);
-                Console.WriteLine($"Newtonsoft.Json: {data.Username} (success)");
+                Console.WriteLine($"Newtonsoft.Json: {data?.Username ?? data?.Value?.ToString() ?? "null"} (success)");
             }
             catch (Exception e)
             {
@@ -59,41 +72,12 @@ namespace JsonParserTest
             try
             {
                 var jObject = JObject.Parse(jsonStr);
-                Console.WriteLine($"Newtonsoft.Json (JObject): {jObject["username"]} (success)");
+                var value = jObject["username"]?.ToString() ?? jObject["value"]?.ToString() ?? "null";
+                Console.WriteLine($"Newtonsoft.Json (JObject): {value} (success)");
             }
             catch (Exception e)
             {
                 Console.WriteLine($"Newtonsoft.Json (JObject): error - {e.Message}");
-            }
-
-            Console.WriteLine();
-        }
-
-        static void TestLargeNumbers()
-        {
-            Console.WriteLine("3. Large Numbers Test");
-            string jsonStr = LoadTestData("large_numbers.json");
-
-            // System.Text.Json
-            try
-            {
-                var data = System.Text.Json.JsonSerializer.Deserialize<TestData>(jsonStr);
-                Console.WriteLine($"System.Text.Json: {data.Value} (success)");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"System.Text.Json: error - {e.Message}");
-            }
-
-            // Newtonsoft.Json
-            try
-            {
-                var data = JsonConvert.DeserializeObject<TestData>(jsonStr);
-                Console.WriteLine($"Newtonsoft.Json: {data.Value} (success)");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Newtonsoft.Json: error - {e.Message}");
             }
 
             Console.WriteLine();

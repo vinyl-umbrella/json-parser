@@ -12,98 +12,78 @@ def load_test_data(filename):
         return f.read()
 
 
-def test_duplicate_keys():
-    print("1. Duplicate Keys Test")
-    json_str = load_test_data("duplicate_keys.json")
-
-    # Standard library
+def test_parser(parser_name, parser_func, json_str, result_key=None):
+    """Test a JSON parser and return formatted result."""
     try:
-        result = json.loads(json_str)
-        print(f"Standard json.loads: {result.get('username')} (success)")
+        result = parser_func(json_str)
+        if result_key:
+            value = result.get(result_key) if hasattr(result, 'get') else result[result_key]
+            if parser_name.endswith("large_numbers"):
+                print(f"{parser_name}: {value} (type: {type(value)})")
+            else:
+                print(f"{parser_name}: {value} (success)")
+        else:
+            print(f"{parser_name}: success")
     except Exception as e:
-        print(f"Standard json.loads: error - {e}")
+        print(f"{parser_name}: error - {e}")
 
-    # ujson
-    if ujson:
-        try:
-            result = ujson.loads(json_str)
-            print(f"ujson.loads: {result.get('username')} (success)")
-        except Exception as e:
-            print(f"ujson.loads: error - {e}")
-    else:
-        print("ujson.loads: not available")
 
-    # orjson
-    if orjson:
-        try:
-            result = orjson.loads(json_str)
-            print(f"orjson.loads: {result.get('username')} (success)")
-        except Exception as e:
-            print(f"orjson.loads: error - {e}")
-    else:
-        print("orjson.loads: not available")
+def run_parser_tests(test_name, json_str, result_key=None):
+    """Run all parsers against the same JSON string."""
+    print(f"{test_name}")
 
-    # simplejson
-    if simplejson:
-        try:
-            result = simplejson.loads(json_str)
-            print(f"simplejson.loads: {result.get('username')} (success)")
-        except Exception as e:
-            print(f"simplejson.loads: error - {e}")
-    else:
-        print("simplejson.loads: not available")
+    parsers = [
+        ("Standard json.loads", json.loads),
+        ("ujson.loads", ujson.loads if ujson else None),
+        ("orjson.loads", orjson.loads if orjson else None),
+        ("simplejson.loads", simplejson.loads if simplejson else None),
+    ]
+
+    for name, parser_func in parsers:
+        if parser_func is None:
+            print(f"{name}: not available")
+        else:
+            test_parser(name, parser_func, json_str, result_key)
 
     print()
+
+
+def test_duplicate_keys():
+    json_str = load_test_data("duplicate_keys.json")
+    run_parser_tests("1. Duplicate Keys Test", json_str, "username")
 
 
 def test_large_numbers():
-    print("3. Large Numbers Test")
     json_str = load_test_data("large_numbers.json")
+    run_parser_tests("2. Large Numbers Test", json_str, "value")
 
-    # Standard library
-    try:
-        result = json.loads(json_str)
-        print(f"Standard json.loads: {result['value']} (type: {type(result['value'])})")
-    except Exception as e:
-        print(f"Standard json.loads: error - {e}")
 
-    # ujson
-    if ujson:
-        try:
-            result = ujson.loads(json_str)
-            print(f"ujson.loads: {result['value']} (type: {type(result['value'])})")
-        except Exception as e:
-            print(f"ujson.loads: error - {e}")
-    else:
-        print("ujson.loads: not available")
+def test_null_char():
+    json_str = load_test_data("bad_unicode_1.json")
+    run_parser_tests("3. Null Character Test", json_str, "username")
 
-    # orjson
-    if orjson:
-        try:
-            result = orjson.loads(json_str)
-            print(f"orjson.loads: {result['value']} (type: {type(result['value'])})")
-        except Exception as e:
-            print(f"orjson.loads: error - {e}")
-    else:
-        print("orjson.loads: not available")
+def test_c1_control_code():
+    json_str = load_test_data("bad_unicode_2.json")
+    run_parser_tests("4. C1 Control Code Test", json_str, "username")
 
-    # simplejson
-    if simplejson:
-        try:
-            result = simplejson.loads(json_str)
-            print(f"simplejson.loads: {result['value']} (type: {type(result['value'])})")
-        except Exception as e:
-            print(f"simplejson.loads: error - {e}")
-    else:
-        print("simplejson.loads: not available")
+def test_unpaired_surrogate():
+    json_str = load_test_data("bad_unicode_3.json")
+    run_parser_tests("5. Unpaired Surrogate Test", json_str, "username")
 
-    print()
+def test_noncharacter():
+    json_str = load_test_data("bad_unicode_4.json")
+    run_parser_tests("6. Noncharacter Test", json_str, "username")
+
 
 def main():
     print("=== JSON Parser Behavior Comparison (Python) ===\n")
 
     test_duplicate_keys()
     test_large_numbers()
+    test_null_char()
+    test_c1_control_code()
+    test_unpaired_surrogate()
+    test_noncharacter()
 
 
 if __name__ == "__main__":

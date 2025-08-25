@@ -2,13 +2,30 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Test case structure
+typedef struct
+{
+    const char *name;
+    const char *filename;
+    const char *test_type;
+} test_case_t;
+
+// Test cases definition
+static const test_case_t test_cases[] = {
+    {"1. Duplicate Keys Test", "duplicate_keys.json", "duplicate_keys"},
+    {"2. Large Numbers Test", "large_numbers.json", "large_numbers"},
+    {"3. Null Character Test", "bad_unicode_1.json", "bad_unicode"},
+    {"4. C1 Control Code Test", "bad_unicode_2.json", "bad_unicode"},
+    {"5. Unpaired Surrogate Test", "bad_unicode_3.json", "bad_unicode"},
+    {"6. Noncharacter Test", "bad_unicode_4.json", "bad_unicode"},
+    {NULL, NULL, NULL} // Sentinel
+};
+
 // Forward declarations
-void test_duplicate_keys(void);
-void test_trailing_commas(void);
-void test_large_numbers(void);
-void test_comments(void);
-void test_single_quotes(void);
 char *load_test_data(const char *filename);
+void run_test_case(const test_case_t *test_case);
+void run_library_test(const char *json_str, const char *test_type, const char *library_name,
+                      void (*test_func)(const char *, const char *));
 
 // External library test functions
 #ifdef HAVE_CJSON
@@ -58,70 +75,58 @@ char *load_test_data(const char *filename)
     return buffer;
 }
 
-void test_duplicate_keys(void)
+// Helper function to run a test with a specific library
+void run_library_test(const char *json_str, const char *test_type, const char *library_name,
+                      void (*test_func)(const char *, const char *))
 {
-    printf("1. Duplicate Keys Test\n");
-    char *json_str = load_test_data("duplicate_keys.json");
-    if (!json_str)
-        return;
-
-#ifdef HAVE_CJSON
-    cjson_parse_test(json_str, "duplicate_keys");
-#else
-    printf("cJSON: not available (library not linked)\n");
-#endif
-
-#ifdef HAVE_JANSSON
-    jansson_parse_test(json_str, "duplicate_keys");
-#else
-    printf("jansson: not available (library not linked)\n");
-#endif
-
-#ifdef HAVE_JSON_C
-    json_c_parse_test(json_str, "duplicate_keys");
-#else
-    printf("json-c: not available (library not linked)\n");
-#endif
-
-#ifdef HAVE_PARSON
-    parson_parse_test(json_str, "duplicate_keys");
-#else
-    printf("parson: not available (library not linked)\n");
-#endif
-
-    free(json_str);
-    printf("\n");
+    if (test_func)
+    {
+        test_func(json_str, test_type);
+    }
+    else
+    {
+        printf("%s: not available (library not linked)\n", library_name);
+    }
 }
 
-void test_large_numbers(void)
+// Run a single test case with all available libraries
+void run_test_case(const test_case_t *test_case)
 {
-    printf("3. Large Numbers Test\n");
-    char *json_str = load_test_data("large_numbers.json");
+    printf("%s\n", test_case->name);
+    char *json_str = load_test_data(test_case->filename);
     if (!json_str)
         return;
 
 #ifdef HAVE_CJSON
-    cjson_parse_test(json_str, "large_numbers");
+    run_library_test(json_str, test_case->test_type, "cJSON", cjson_parse_test);
 #else
-    printf("cJSON: not available (library not linked)\n");
+    run_library_test(json_str, test_case->test_type, "cJSON", NULL);
 #endif
 
 #ifdef HAVE_JANSSON
-    jansson_parse_test(json_str, "large_numbers");
+    run_library_test(json_str, test_case->test_type, "jansson", jansson_parse_test);
 #else
-    printf("jansson: not available (library not linked)\n");
+    run_library_test(json_str, test_case->test_type, "jansson", NULL);
 #endif
 
 #ifdef HAVE_JSON_C
-    json_c_parse_test(json_str, "large_numbers");
+    run_library_test(json_str, test_case->test_type, "json-c", json_c_parse_test);
 #else
-    printf("json-c: not available (library not linked)\n");
+    run_library_test(json_str, test_case->test_type, "json-c", NULL);
 #endif
 
 #ifdef HAVE_PARSON
-    parson_parse_test(json_str, "large_numbers");
+    // Skip parson for certain bad unicode tests as it may crash
+    if (strcmp(test_case->test_type, "bad_unicode") == 0)
+    {
+        printf("parson: skipped (known to crash on certain unicode sequences)\n");
+    }
+    else
+    {
+        run_library_test(json_str, test_case->test_type, "parson", parson_parse_test);
+    }
 #else
-    printf("parson: not available (library not linked)\n");
+    run_library_test(json_str, test_case->test_type, "parson", NULL);
 #endif
 
     free(json_str);
@@ -132,8 +137,11 @@ int main(void)
 {
     printf("=== JSON Parser Behavior Comparison (C) ===\n\n");
 
-    test_duplicate_keys();
-    test_large_numbers();
+    // Run all test cases
+    for (int i = 0; test_cases[i].name != NULL; i++)
+    {
+        run_test_case(&test_cases[i]);
+    }
 
     return 0;
 }

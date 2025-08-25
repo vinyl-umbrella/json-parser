@@ -13,18 +13,12 @@ void parson_parse_test(const char *json_str, const char *test_name)
         return;
     }
 
-    printf("parson: attempting to parse JSON\n");
-    fflush(stdout);
-
     JSON_Value *json_value = json_parse_string(json_str);
     if (!json_value)
     {
         printf("parson: error - parse error\n");
         return;
     }
-
-    printf("parson: JSON parsed successfully\n");
-    fflush(stdout);
 
     JSON_Object *json_object = json_value_get_object(json_value);
     if (!json_object)
@@ -33,9 +27,6 @@ void parson_parse_test(const char *json_str, const char *test_name)
         json_value_free(json_value);
         return;
     }
-
-    printf("parson: JSON object obtained\n");
-    fflush(stdout);
 
     // Just do a simple test for now
     if (strcmp(test_name, "trailing_commas") == 0)
@@ -54,6 +45,27 @@ void parson_parse_test(const char *json_str, const char *test_name)
             printf("parson: value not found\n");
         }
     }
+    else if (strcmp(test_name, "bad_unicode") == 0)
+    {
+        const char *username = json_object_get_string(json_object, "username");
+        if (username)
+        {
+            printf("parson: username=\"");
+            // Use a safer approach to handle potentially problematic strings
+            char *safe_str = (char *)username;
+            int i = 0;
+            while (i < 100 && safe_str[i] != '\0')
+            { // Limit to prevent infinite loops
+                printf("\\x%02x", (unsigned char)safe_str[i]);
+                i++;
+            }
+            printf("\" (success)\n");
+        }
+        else
+        {
+            printf("parson: username not found\n");
+        }
+    }
     else
     {
         const char *username = json_object_get_string(json_object, "username");
@@ -67,11 +79,7 @@ void parson_parse_test(const char *json_str, const char *test_name)
         }
     }
 
-    printf("parson: about to free JSON value\n");
-    fflush(stdout);
     json_value_free(json_value);
-    printf("parson: JSON value freed\n");
-    fflush(stdout);
 #else
     printf("parson: not available (library not linked)\n");
 #endif
