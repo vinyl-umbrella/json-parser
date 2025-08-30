@@ -10,12 +10,5 @@
     "dependencies": {
         "fast-json-parse": "^1.0.3",
         "json5": "^2.2.3"
-    },
-    "keywords": [
-        "json",
-        "parser",
-        "comparison"
-    ],
-    "author": "",
-    "license": "MIT"
+    }
 }
